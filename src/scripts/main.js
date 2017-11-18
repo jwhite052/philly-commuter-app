@@ -22,6 +22,9 @@ function initMap() {
             map: map
           });
         }
+        var routeLayer = new google.maps.KmlLayer('/src/kml/48.kml', {
+          map: map
+        });
       }
   });
 
