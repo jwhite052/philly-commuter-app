@@ -6,18 +6,29 @@ function initMap() {
     ROOT_PATH = '';
   }
 
-  // initalize map
-  var GLOBAL_MAP = new google.maps.Map(document.getElementById('map'), {
-    center: {lat: 40.0556365, lng: -75.1},
-    zoom: 10,
-    minZoom: 9,
-    maxZoom: 16,
-    mapTypeControl: false,
-    streetViewControl: false,
-    clickableIcons: false
-  });
+  function View(model) {
+    console.log("View init");
+    this._model = model;
+    this.markersArr = [];
 
-  var setBusMarkers = function(map, response) {
+    var _self = this;
+
+    this.appMap = new google.maps.Map(document.getElementById('map'), {
+      center: {lat: 40.0556365, lng: -75.1},
+      zoom: 10,
+      minZoom: 9,
+      maxZoom: 16,
+      mapTypeControl: false,
+      streetViewControl: false,
+      clickableIcons: false
+    });
+  }
+  View.prototype.setBusMarkers = function() {
+    var _self = this;
+
+    var response = _self._model.busDataResponse;
+    console.log(response);
+    var map = _self.appMap;
     var marker;
     var markerIconsList = {
       'northbound': {
@@ -68,43 +79,132 @@ function initMap() {
         infowindow.setContent(this.content);
         infowindow.open(map, this);
       });
+      // store markers in array
+      _self.markersArr.push(marker);
     }
   };
+  View.prototype.clearBusMarkers = function() {
+    var _self = this;
 
-  var setBusRoute = function(map) {
+    for (var i = 0; i < _self.markersArr.length; i++) {
+      _self.markersArr[i].setMap(null);
+    }
+    _self.markersArr = [];
+  };
+  View.prototype.setMapRouteLines = function(busroute) {
+    var _self = this;
+
+    console.log("Adding KML layer");
+    var map = _self.appMap;
     var routeLayer = new google.maps.KmlLayer({
-      url: KML_ROOT_PATH + '/src/kml/48.kml',
+      // url: KML_ROOT_PATH + '/src/kml/' + busroute + '.kml',
+      url: 'http://www3.septa.org/transitview/kml/' + busroute + '.kml',
       map: map
     });
   };
 
-  var successAPIRequest = function(map, response) {
-    setBusMarkers(map, response);
-    setBusRoute(map);
-  };
+  // var responseHandler = function(response) {
+  //   successAPIRequest(response);
+  // };
 
-  $.ajax({
-      url: 'https://www3.septa.org/api/TransitView/?route=48&callback=?',
-      dataType: 'jsonp',
-      success: function(response){
-        successAPIRequest(GLOBAL_MAP, response);
-      }
-  });
+  // var getBusData = function(responseHandler) {
+  //   // Fetch bus data
+  //   $.ajax({
+  //       url: 'https://www3.septa.org/api/TransitView/?route=48&callback=?',
+  //       dataType: 'jsonp',
+  //       success: function(response){
+  //         responseHandler(response);
+  //         successAPIRequest(appMap, response);
+  //       }
+  //   });
+  // };
 
-  // GPS location
-  var geoSuccess = function(position) {
-    startPos = position;
-    console.log(startPos.coords.latitude);
-    console.log(startPos.coords.longitude);
-    var marker = new google.maps.Marker({
-      position: {lat: startPos.coords.latitude, lng: startPos.coords.longitude},
-      map: GLOBAL_MAP,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 5,
-        strokeColor: '#569bca'
-      }
+  function Model(controller) {
+    this._controller = controller;
+    console.log("Model init");
+    console.log("Model controller: ");
+    console.log(this._controller);
+    this._self = this;
+
+    this.busDataResponse;
+  }
+  // Model.prototype.successAPIRequest = function(map, response) {
+    // navigator.geolocation.getCurrentPosition(function(position) {
+    //   console.log(position);
+    //   startPos = position;
+    //   console.log(startPos.coords.latitude);
+    //   console.log(startPos.coords.longitude);
+    //   var marker = new google.maps.Marker({
+    //     position: {lat: startPos.coords.latitude, lng: startPos.coords.longitude},
+    //     map: map,
+    //     icon: {
+    //       path: google.maps.SymbolPath.CIRCLE,
+    //       scale: 5,
+    //       strokeColor: '#569bca'
+    //     }
+    //   });
+    // });
+  //   setBusMarkers(map, response);
+  //   setMapRouteLines(map);s
+  // };
+  Model.prototype.setBusData = function(busroute) {
+    var _self = this;
+    // Fetch bus data
+    $.ajax({
+        url: 'https://www3.septa.org/api/TransitView/?route=' + busroute + '&callback=?',
+        dataType: 'jsonp',
+        success: function(response){
+          console.log("setBusData");
+          _self.busDataResponse = response;
+          // console.log(response);
+          // this._controller.updateBus().bind(this);
+          _self._controller.updateBus(busroute);
+          // _self.
+          //successAPIRequest(appMap, response);
+        }
     });
   };
-  navigator.geolocation.getCurrentPosition(geoSuccess);
+
+  function Controller(model, view) {
+    console.log("Controller init");
+    this._model = model;
+    this._view = view;
+
+    var _self = this;
+  }
+  Controller.prototype.updateBus = function(busroute) {
+    var _self = this;
+    // updates the bus based on time interval
+    // this._view.setMapRouteLines();
+    _self._view.setBusMarkers(busroute);
+    _self._view.setMapRouteLines(busroute);
+    console.log("Update bus");
+  };
+
+  var initApp = function() {
+    var appModel;
+    var appView;
+    var appController;
+
+    appModel = new Model(appController);
+    appView = new View(appModel);
+    appController = new Controller(appModel, appView);
+
+    appModel._controller = appController;
+
+    console.log("appModel._controller: ");
+    console.log(appModel._controller);
+    console.log("appController: ");
+    console.log(appController);
+    // Business logic
+    // appModel.setBusData('48');
+    setInterval(function(){
+      appView.clearBusMarkers();
+      appModel.setBusData('48');
+    }, 30000);
+    // appView.setBusMarkers();
+  };
+
+  // Start application
+  initApp();
 }
