@@ -27,8 +27,8 @@ function initMap() {
     var _self = this;
 
     var response = _self._model.busDataResponse;
-    console.log(response);
     var map = _self.appMap;
+    // var mapCenter = map.getCenter();
     var marker;
     var markerIconsList = {
       'northbound': {
@@ -82,6 +82,7 @@ function initMap() {
       // store markers in array
       _self.markersArr.push(marker);
     }
+    // map.setCenter(mapCenter);
   };
   View.prototype.clearBusMarkers = function() {
     var _self = this;
@@ -99,7 +100,8 @@ function initMap() {
     var routeLayer = new google.maps.KmlLayer({
       // url: KML_ROOT_PATH + '/src/kml/' + busroute + '.kml',
       url: 'http://www3.septa.org/transitview/kml/' + busroute + '.kml',
-      map: map
+      map: map,
+      preserveViewport: true
     });
   };
 
@@ -177,7 +179,7 @@ function initMap() {
     // updates the bus based on time interval
     // this._view.setMapRouteLines();
     _self._view.setBusMarkers(busroute);
-    _self._view.setMapRouteLines(busroute);
+
     console.log("Update bus");
   };
 
@@ -198,10 +200,11 @@ function initMap() {
     console.log(appController);
     // Business logic
     // appModel.setBusData('48');
+    appView.setMapRouteLines('48');
     setInterval(function(){
       appView.clearBusMarkers();
       appModel.setBusData('48');
-    }, 30000);
+    }, 5000);
     // appView.setBusMarkers();
   };
 
